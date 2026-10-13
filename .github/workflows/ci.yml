@@ -291,7 +291,7 @@ jobs:
         run: uv run semgrep scan --config=p/python --config=p/secrets --sarif --sarif-output=semgrep-results.sarif src/
 
       - name: Upload Semgrep results
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: >-
           always() &&
           (github.event_name != 'pull_request' ||
@@ -314,7 +314,7 @@ jobs:
           exit-code: '1'
 
       - name: Upload Trivy results
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: >-
           always() &&
           (github.event_name != 'pull_request' ||
