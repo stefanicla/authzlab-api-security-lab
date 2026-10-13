@@ -361,15 +361,24 @@ jobs:
 
       - name: Test secure image
         run: |
-          docker run --rm -d --name authzlab-test \
+          set -euo pipefail
+          trap 'docker stop authzlab-test >/dev/null 2>&1 || true; docker rm authzlab-test >/dev/null 2>&1 || true' EXIT
+          docker run -d --name authzlab-test \
+            --add-host=host.docker.internal:host-gateway \
             -e HOST=0.0.0.0 \
             -e DATABASE_URL=postgresql+psycopg://authzlab:authzlab@host.docker.internal:5432/authzlab \
             -p 8000:8000 \
             authzlab:secure
-          sleep 10
-          curl -f http://localhost:8000/health/live
-          curl -f http://localhost:8000/health/ready
-          docker stop authzlab-test
+          for i in {1..30}; do
+            if curl -fsS http://localhost:8000/health/live >/dev/null 2>&1 \
+              && curl -fsS http://localhost:8000/health/ready >/dev/null 2>&1; then
+              echo "Secure image is live and ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs authzlab-test
+          exit 1
 
   zap-scan:
     name: OWASP ZAP Scan
@@ -404,12 +413,30 @@ jobs:
     if: always()
     steps:
       - name: Check job statuses
+        env:
+          LINT_RESULT: ${{ needs.lint-and-typecheck.result }}
+          UNIT_TEST_RESULT: ${{ needs.unit-tests.result }}
+          INTEGRATION_TEST_RESULT: ${{ needs.integration-tests.result }}
+          SECURITY_TEST_RESULT: ${{ needs.security-tests.result }}
+          COVERAGE_RESULT: ${{ needs.coverage.result }}
+          SECURITY_SCAN_RESULT: ${{ needs.security-scans.result }}
+          DOCKER_BUILD_RESULT: ${{ needs.docker-build.result }}
         run: |
-          echo "All required jobs completed"
-          echo "Lint & Typecheck: ${{ needs.lint-and-typecheck.result }}"
-          echo "Unit Tests: ${{ needs.unit-tests.result }}"
-          echo "Integration Tests: ${{ needs.integration-tests.result }}"
-          echo "Security Tests: ${{ needs.security-tests.result }}"
-          echo "Coverage Floor: ${{ needs.coverage.result }}"
-          echo "Security Scans: ${{ needs.security-scans.result }}"
-          echo "Docker Build: ${{ needs.docker-build.result }}"
+          echo "Lint & Typecheck: $LINT_RESULT"
+          echo "Unit Tests: $UNIT_TEST_RESULT"
+          echo "Integration Tests: $INTEGRATION_TEST_RESULT"
+          echo "Security Tests: $SECURITY_TEST_RESULT"
+          echo "Coverage Floor: $COVERAGE_RESULT"
+          echo "Security Scans: $SECURITY_SCAN_RESULT"
+          echo "Docker Build: $DOCKER_BUILD_RESULT"
+          if [[ "$LINT_RESULT" != success \
+            || "$UNIT_TEST_RESULT" != success \
+            || "$INTEGRATION_TEST_RESULT" != success \
+            || "$SECURITY_TEST_RESULT" != success \
+            || "$COVERAGE_RESULT" != success \
+            || "$SECURITY_SCAN_RESULT" != success \
+            || "$DOCKER_BUILD_RESULT" != success ]]; then
+            echo "One or more required CI jobs failed."
+            exit 1
+          fi
+          echo "All required CI jobs passed."
