@@ -1,0 +1,79 @@
+# AuthZLab .dockerignore
+
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+env/
+ENV/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+dist/
+build/
+*.egg-info/
+
+# IDE/Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Private keys and credentials
+*.pem
+*.key
+id_rsa
+id_ed25519
+
+# Logs
+*.log
+logs/
+
+# Database
+*.sqlite
+*.db
+
+# Test artifacts
+test-results/
+coverage.xml
+
+# Documentation (optional - include if you want in image)
+# docs/
+
+# Scripts (optional - include if you want in image)
+# scripts/
+
+# Docker
+Dockerfile*
+docker-compose*
+compose*.yaml
+.dockerignore
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Misc
+*.tar.gz
+*.tgz

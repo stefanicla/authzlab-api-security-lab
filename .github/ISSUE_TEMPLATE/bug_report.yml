@@ -1,0 +1,36 @@
+name: Bug report
+description: Report a reproducible problem with AuthZLab
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Do not report security vulnerabilities in a public issue. Follow
+        [SECURITY.md](https://github.com/stefanicla/authzlab-api-security-lab/blob/main/SECURITY.md)
+        for private reporting.
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Include the command or endpoint and the observed result.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Python/uv, Docker, and PostgreSQL versions.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      render: shell

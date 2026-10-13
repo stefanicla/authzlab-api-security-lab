@@ -1,0 +1,133 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:18
+    container_name: authzlab-postgres
+    environment:
+      POSTGRES_DB: authzlab
+      POSTGRES_USER: authzlab
+      # Dev-only default; override POSTGRES_PASSWORD in any shared environment (M-9).
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-authzlab}
+    volumes:
+      - postgres_data:/var/lib/postgresql
+      - ./scripts/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U authzlab -d authzlab"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - authzlab-network
+    profiles:
+      - secure
+      - lab
+    restart: unless-stopped
+
+  # Secure API Application
+  api-secure:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: authzlab-api-secure
+    # M-9: do not run as root under Compose (Dockerfile USER only applies to `docker run`).
+    user: "appuser"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-postgresql+psycopg://authzlab:authzlab@postgres:5432/authzlab}
+      - ENVIRONMENT=development
+      - DEBUG=true
+      # M-A/H-2: inside a container, loopback binding makes published ports dead;
+      # explicit here (image default is also 0.0.0.0, see Dockerfile).
+      - HOST=0.0.0.0
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://127.0.0.1:8000/health/ready', timeout=3).raise_for_status()"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - authzlab-network
+    profiles:
+      - secure
+    restart: unless-stopped
+
+  # Vulnerable Lab API Application
+  api-lab:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: authzlab-api-lab
+    user: "appuser"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+    environment:
+      - DATABASE_URL=${LAB_DATABASE_URL:-postgresql+psycopg://authzlab:authzlab@postgres:5432/authzlab_lab}
+      - ENVIRONMENT=testing
+      - DEBUG=true
+      - HOST=0.0.0.0
+      - AUTHZLAB_LAB_MODE=true
+      - AUTHZLAB_LAB_ALLOW_EXTERNAL=false
+    ports:
+      - "127.0.0.1:8001:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://127.0.0.1:8000/health/ready', timeout=3).raise_for_status()"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - authzlab-network
+    profiles:
+      - lab
+    restart: unless-stopped
+
+  # OWASP ZAP for DAST (optional, run on demand)
+  zap:
+    # L-5: `owasp/zap2docker-stable` was deprecated when ZAP left the OWASP org;
+    # the current official image is `ghcr.io/zaproxy/zaproxy:stable`, pinned by
+    # digest like postgres in ci.yml.
+    image: ghcr.io/zaproxy/zaproxy:stable@sha256:7aaa659b0d43078febd82e29bad112285c370727e86ab8340444220e17d9f0d2
+    container_name: authzlab-zap
+    command: >
+      zap.sh -daemon -host 0.0.0.0 -port 8080
+      -config api.disablekey=true
+      -config scanner.attackOnStart=false
+      -config view.mode=attack
+    ports:
+      - "127.0.0.1:8080:8080"
+    networks:
+      - authzlab-network
+    profiles:
+      - dast
+    restart: "no"
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  authzlab-network:
+    driver: bridge
+    name: authzlab-network

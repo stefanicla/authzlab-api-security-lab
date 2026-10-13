@@ -1,0 +1,84 @@
+# AuthZLab .gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+env/
+ENV/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+dist/
+build/
+*.egg-info/
+pip-wheel-metadata/
+
+# UV
+# uv.lock is intentionally tracked for reproducible builds (see C-1)
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Private keys and credentials
+*.pem
+*.key
+id_rsa
+id_ed25519
+
+# IDE/Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Database
+*.sqlite
+*.db
+*.sqlite3
+
+# Test artifacts
+test-results/
+coverage.xml
+.coverage
+semgrep-results.json
+semgrep-results.sarif
+trivy-results.sarif
+debug_login.py
+init_db.py
+
+# Docker
+.docker/
+
+# Misc
+*.tar.gz
+*.tgz
+*.bak
+*.tmp
+
+# Local development
+local/
+
+# Agent tooling (opencode workspace state, node_modules)
+.opencode/
+
+# Local screenshot tooling (genera docs/assets/*.png, non riproducibile per altri)
+scripts/capture_screenshots.py

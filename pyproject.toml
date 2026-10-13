@@ -1,0 +1,121 @@
+[project]
+name = "authzlab"
+version = "0.1.0"
+description = "AuthZLab: Multi-tenant API Authorization Security Laboratory"
+readme = "README.md"
+authors = [
+    { name = "Claudio Stefani", email = "stefanicla@users.noreply.github.com" }
+]
+license = { text = "MIT" }
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.34.0",
+    "pydantic>=2.10.0",
+    "pydantic-settings>=2.8.0",
+    "sqlalchemy>=2.0.30",
+    "psycopg[binary,pool]>=3.2.0",
+    "alembic>=1.14.0",
+    "pyjwt[crypto]>=2.10.0",
+    "argon2-cffi>=23.1.0",
+    "python-multipart>=0.0.9",
+    "httpx>=0.28.0",
+    "python-dotenv>=1.0.0",
+    "typer>=0.15.0",
+    "rich>=13.9.0",
+    "cryptography>=42.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/stefanicla/authzlab-api-security-lab"
+Repository = "https://github.com/stefanicla/authzlab-api-security-lab"
+Issues = "https://github.com/stefanicla/authzlab-api-security-lab/issues"
+Security = "https://github.com/stefanicla/authzlab-api-security-lab/security/policy"
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.9.0",
+    "pytest>=8.3.0",
+    "pytest-cov>=6.0.0",
+    "pytest-asyncio>=0.24.0",
+    "mypy>=1.13.0",
+    "semgrep>=1.120.0",
+]
+
+[project.scripts]
+authzlab = "authzlab.cli:main"
+authzlab-secure = "authzlab.secure_app:main"
+authzlab-lab = "authzlab.vulnerable_app:main"
+# NOTE: no authzlab-exploit entry point (H-3): scripts/ is not a package;
+# run the runner via `python scripts/exploit_scenarios.py` (see Makefile).
+
+[build-system]
+requires = ["uv_build>=0.12.10,<0.13.0"]
+build-backend = "uv_build"
+
+[tool.ruff]
+target-version = "py314"
+line-length = 100
+
+[tool.ruff.lint]
+# H-1: gating lint covers stable correctness rules only. Preview/style rules
+# (PL, TRY, ARG, PERF, FLY, PD, PGH, TID, LOG, T20, PIE, NPY, C90, TCH) run in
+# `make lint-style` / CI style job (non-gating, continue-on-error).
+select = [
+    "E", "F", "W", "I", "N", "UP", "B", "A", "C4", "SIM", "ERA", "PTH", "RET", "RSE",
+]
+ignore = [
+    "B012",  # jump-statement-in-finally; no finally block in this repo returns/breaks
+    "B008",  # FastAPI Depends() in defaults is idiomatic
+    "N818",  # DomainException is domain convention, not an Error-suffix issue
+    "UP042",  # str,Enum kept for SQLAlchemy Enum compat; StrEnum would change DB behavior
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101"]
+
+[tool.ruff.format]
+quote-style = "double"
+docstring-code-format = true
+
+[tool.mypy]
+python_version = "3.14"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+no_implicit_optional = true
+strict_equality = true
+show_error_codes = true
+pretty = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+filterwarnings = [
+    # test_jwt.py signs a deliberately short HS256 key to prove the RS256
+    # algorithm allow-list rejects the forgery. The weak key IS the attack,
+    # so the warning is expected rather than a defect to fix.
+    "ignore:The HMAC key is 20 bytes long:jwt.warnings.InsecureKeyLengthWarning",
+]
+
+[tool.coverage.run]
+source = ["src/authzlab"]
+omit = ["tests/*", "scripts/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]
+
+# Semgrep uses registry rulesets (see the `semgrep` Makefile target and CI);
+# there is no local .semgrep.yml ([tool.semgrep] would be ignored by Semgrep).

@@ -1,0 +1,4 @@
+# Normalize line endings (Windows/WSL mixed checkouts)
+* text=auto
+# Shell scripts must keep LF (executed inside containers)
+*.sh text eol=lf
